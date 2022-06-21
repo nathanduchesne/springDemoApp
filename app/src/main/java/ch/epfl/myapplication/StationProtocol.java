@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.UUID;
 
 public class StationProtocol extends AppCompatActivity {
-    BluetoothAdapter bluetooth;
     String BT_NAME = "BLUETOOTH_CONNECTION_FOR_THE_APP";
     UUID BT_UUID = UUID.fromString("c9916d86-1653-4f14-b7f1-075f0b39af39");
     TextView stationText;
@@ -28,7 +27,6 @@ public class StationProtocol extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_station_protocol);
-        bluetooth = BluetoothAdapter.getDefaultAdapter();
         stationText = findViewById(R.id.issuerText);
         thread = new BT_Thread();
         thread.setPriority(Thread.MAX_PRIORITY);
@@ -42,6 +40,7 @@ public class StationProtocol extends AppCompatActivity {
     }
 
     private class BT_Thread extends Thread {
+        BluetoothAdapter bluetooth;
         public BluetoothServerSocket serverSocket;
         public BluetoothSocket recipientSocket;
         InputStream mmInStream;
@@ -49,6 +48,7 @@ public class StationProtocol extends AppCompatActivity {
         byte[] mmBuffer = new byte[4096];
         public void run() {
             try {
+                bluetooth = BluetoothAdapter.getDefaultAdapter();
                 Log.e("bla", "before getting socket");
                 serverSocket = bluetooth.listenUsingRfcommWithServiceRecord(BT_NAME, BT_UUID);
                 Log.e("bla", "got server socket");
@@ -65,8 +65,55 @@ public class StationProtocol extends AppCompatActivity {
                 e.printStackTrace();
                 return;
             }
-            //HelloWorld.main();
+            HelloWorld.main();
             startProtocol();
+        }
+
+        private byte[] listen() {
+            try {
+                // Wait for commitment and PK
+                int numBytes = mmInStream.read(mmBuffer);
+                return Arrays.copyOf(mmBuffer, numBytes);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+
+        private void write(byte[] content) {
+            try {
+                mmOutStream.write(content);
+            }
+            catch (IOException e) {
+            }
+        }
+
+        private void startProtocol2() {
+            write(new byte[2500]);
+            Log.e("tester", "sent first");
+
+            byte[] res2 = listen();
+            Log.e("tester", "received first");
+            write(multiplyArray(res2));
+            Log.e("tester", "sent second");
+
+            byte[] res3 = listen();
+            Log.e("tester", "received second");
+            write(multiplyArray(res3));
+            Log.e("tester", "sent third");
+
+            byte[] finalRes = listen();
+            byte[] oups = multiplyArray(finalRes);
+            System.out.println(oups.length);
+            Log.e("tester", "finished");
+        }
+
+
+        private byte[] multiplyArray(byte[] array) {
+            byte[] result = new byte[array.length];
+            for (int i = 0; i < array.length; i++) {
+                result[i] = (byte)(array[i] + array[i]);
+            }
+            return result;
         }
 
         /*
@@ -80,133 +127,53 @@ public class StationProtocol extends AppCompatActivity {
             byte[] keys = keygenJava(nbIssuerAttributes+nbRecipientAttributes);
             byte[] publicKey = getPublicKeyJava(keys);
             byte[] privateKey = getPrivateKeyJava(keys);
-            try {
-                mmOutStream.write(publicKey);
-                Log.e("startProtoIssuer", "sent public key");
-            }
-            catch (IOException e) {
-                //stationText.setText("Failed to send public key..");
-            }
+            write(publicKey);
 
-            boolean waitingForPK = true;
-            byte[] PK = null;
-            while (waitingForPK) {
-                try {
-                    // Wait for commitment and PK
-                    int numBytes = mmInStream.read(mmBuffer);
-                    // Send the obtained bytes to the UI activity.
-                    PK = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForPK = false;
-                } catch (IOException e) {
-                    waitingForPK = true;
-
-                }
-            }
-            Log.e("startProtoIssuer", "got pk");
+            byte[] PK = listen();
             String validPK = verifyUserCommitmentJava(PK, publicKey, nbRecipientAttributes, nbIssuerAttributes);
-
-            try {
-                if (validPK.equals("True")) {
-                    byte[] issuerAttributes = getAttributesJava(nbIssuerAttributes);
-                    byte[] credential = issuerSigningJava(publicKey, privateKey, PK, nbIssuerAttributes, issuerAttributes, nbRecipientAttributes);
-                    mmOutStream.write(credential);
-                    Log.e("startProtoIssuer", "sent credential");
-                    System.out.println("Valid proof of knowledge!");
-                }
-                else {
-                    mmOutStream.write(new byte[1]);
-                    Log.e("startProtoIssuer", "sent shit because proto is invalid");
-                    System.out.println("Invalid proof of knowledge!");
-                    return;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (validPK.equals("True")) {
+                byte[] issuerAttributes = getAttributesJava(nbIssuerAttributes);
+                byte[] credential = issuerSigningJava(publicKey, privateKey, PK, nbIssuerAttributes, issuerAttributes, nbRecipientAttributes);
+                write(credential);
             }
+            else {
+                write(new byte[1]);
+            }
+
             Log.e("startProtoIssuer", "waiting for disclosure");
-            byte[] disclosureProof = null;
-            boolean waitingForDisclosure = true;
-            while (waitingForDisclosure) {
-                try {
-                    int numBytes = mmInStream.read(mmBuffer);
-                    System.out.println("proof is bytes long: "+numBytes);
-                    // Send the obtained bytes to the UI activity.
-                    disclosureProof = Arrays.copyOf(mmBuffer, numBytes);
-                    Log.e("startProtoIssuer", "got disclosure");
-                    waitingForDisclosure = false;
-                } catch (IOException e) {
-                    waitingForDisclosure = true;
-
-                }
-            }
+            byte[] disclosureProof = listen();
             byte[] alreadySeenCredentials = getAlreadySeenCredentialsJava();
             Log.e("startProtoIssuer", "got pseudo list");
-            dumpStack();
             String validDisclosure = verifyDisclosureProofJava(disclosureProof, publicKey, alreadySeenCredentials);
-            dumpStack();
-            Log.e("startProtoIssuer", "got verification of disclosure proof");
-            byte[] blacklist = null;
-            try {
-                if (validDisclosure.equals("True")) {
-                    Log.e("startProtoIssuer", "sent validation of disclosure");
-                    blacklist = getServiceProviderRevocatedValuesJava(10);
-                    mmOutStream.write(blacklist);
-                }
-                else {
-                    mmOutStream.write(new byte[1]);
-                    return;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            Log.e("startProtoIssuer", "verified disclosure");
+            byte[] blacklist;
+            if (validDisclosure.equals("True")) {
+                blacklist = getServiceProviderRevocatedValuesJava(10);
+                write(blacklist);
             }
+            else {
+                write(new byte[1]);
+                return;
+            }
+            Log.e("startProtoIssuer", "wrote blacklist");
 
-            boolean waitingForConfirmation = true;
-            while (waitingForConfirmation) {
-                try {
-                    // Wait for commitment and PK
-                    int numBytes = mmInStream.read(mmBuffer);
-                    if (numBytes == 1) {
-                        waitingForConfirmation = false;
-                    }
-                } catch (IOException e) {
-                    waitingForConfirmation = true;
-
-                }
+            byte[] confirmation = listen();
+            if (confirmation.length != 1) {
+                return;
             }
             byte[] blacklistedPowers = getBlacklistedPowersJava(10);
-            try {
-                mmOutStream.write(blacklistedPowers);
-            }
-            catch (IOException e){
+            write(blacklistedPowers);
 
-            }
-            boolean waitingForBLAC = true;
-            byte[] blacProof = null;
-            while (waitingForBLAC) {
-                try {
-                    // Wait for commitment and PK
-                    int numBytes = mmInStream.read(mmBuffer);
+            byte[] blacProof = listen();
 
-                    blacProof = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForBLAC = false;
-                } catch (IOException e) {
-                    waitingForBLAC = true;
-
-                }
-            }
             String validBLACProof = getVerifierProtocolJava(blacProof, blacklist, blacklistedPowers);
-            try {
-                if (validBLACProof.equals("True")) {
-                    mmOutStream.write(new byte[2]);
-                    Log.e("issuerOut", "letsgooo all works");
-                    //stationText.setText("All good!");
-                }
-                else {
-                    mmOutStream.write(new byte[1]);
-                    //stationText.setText("Recipient was in blacklist!");
-                }
+            if (validBLACProof.equals("True")) {
+                write(new byte[2]);
+                Log.e("issuerOut", "letsgooo all works");
             }
-            catch (IOException e) {
-
+            else {
+                write(new byte[1]);
+                Log.e("issuerOut", "blac failed");
             }
         }
 

@@ -55,6 +55,7 @@ public class RecipientProtocol extends AppCompatActivity {
     }
 
     private class ClientBT_Thread extends Thread {
+        BluetoothAdapter bluetooth;
         BluetoothDevice device;
         InputStream mmInStream;
         OutputStream mmOutStream;
@@ -64,6 +65,7 @@ public class RecipientProtocol extends AppCompatActivity {
         }
         public void run() {
             try {
+                bluetooth = BluetoothAdapter.getDefaultAdapter();
                 BluetoothSocket serverSocket = device.createRfcommSocketToServiceRecord(BT_UUID);
                 serverSocket.connect();
                 Log.e("protocol", "successfully connected to the other phone socket");
@@ -78,165 +80,112 @@ public class RecipientProtocol extends AppCompatActivity {
 
             startProtocol();
         }
+
+        private byte[] listen() {
+            try {
+                // Wait for commitment and PK
+                int numBytes = mmInStream.read(mmBuffer);
+                return Arrays.copyOf(mmBuffer, numBytes);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+
+        private void write(byte[] content) {
+            try {
+                mmOutStream.write(content);
+            }
+            catch (IOException e) {
+            }
+        }
+
+        private byte[] multiplyArray(byte[] array) {
+            byte[] result = new byte[array.length];
+            for (int i = 0; i < array.length; i++) {
+                result[i] = (byte)(array[i] + array[i]);
+            }
+            return result;
+        }
+
+        private void startProtocol2() {
+            byte[] res1 = listen();
+            write(multiplyArray(res1));
+            Log.e("tester", "sent first");
+
+            byte[] res2 = listen();
+            Log.e("tester", "received first");
+            write(multiplyArray(res2));
+            Log.e("tester", "sent second");
+
+            byte[] res3 = listen();
+            Log.e("tester", "received second");
+            write(multiplyArray(res3));
+            Log.e("tester", "sent third");
+        }
         /*
     Starts the protocol run from the recipient side
      */
         private void startProtocol() {
-            System.out.println(Runtime.getRuntime().freeMemory());
             int nbRecipientAttributes = 2;
             int nbIssuerAttributes = 5;
             initCurve();
-            boolean waitingForKeys = true;
-            byte[] publicKey = null;
-            while (waitingForKeys) {
-                try {
-                    // Wait for keygen
-                    int numBytes = mmInStream.read(mmBuffer);
-                    System.out.println("numBytes is "+numBytes);
-                    // Send the obtained bytes to the UI activity.
-                    publicKey = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForKeys = false;
-                } catch (IOException e) {
-                    waitingForKeys = true;
-
-                }
-            }
-            System.out.println(Runtime.getRuntime().freeMemory());
-            System.out.println("isWaitingForKeys is"+waitingForKeys);
+            byte[] publicKey = listen();
+            System.out.println("sizeof public key is "+publicKey.length);
             Log.e("protocol", "got public key");
             byte[] recipientAttributes = getAttributesJava(nbRecipientAttributes);
+            System.out.println("sizeof rcip attrib is "+recipientAttributes.length);
             Log.e("protocol", "got recip attributes");
-            dumpStack();
-            System.out.println(Runtime.getRuntime().freeMemory());
             byte[] recipientCommitment = getUserCommitmentJava(publicKey, recipientAttributes, nbRecipientAttributes, nbIssuerAttributes);
+            System.out.println("sizeof recip commitment key is "+recipientCommitment.length);
             Log.e("protocol", "got recip pk");
-            System.out.println(Runtime.getRuntime().freeMemory());
             byte[] recipientCommitmentForIssuer = removeBlindingFactorJava(recipientCommitment, nbRecipientAttributes);
+            System.out.println("sizeof commitment for issuer is "+recipientCommitmentForIssuer.length);
             Log.e("protocol", "got recip pk for issuer");
-            System.out.println(Runtime.getRuntime().freeMemory());
-            try {
-                mmOutStream.write(recipientCommitmentForIssuer);
-                Log.e("protocol", "sent commitment");
-            } catch (IOException e) {
-                Log.e("protocol", "commitment failed to send");
-                System.out.println("exception while sending commitment");
-            }
+            write(recipientCommitmentForIssuer);
+
             //Wait for signature and credentials
-            byte[] blindCredential = null;
-            boolean waitingForCredential = true;
-            while (waitingForCredential) {
-                try {
-                    // Wait for keygen
-                    int numBytes = mmInStream.read(mmBuffer);
-                    System.out.println("numBytes is "+numBytes);
-
-                    //If byte[] is of size 1, it means something failed
-                    if (numBytes == 1) {
-                        Log.e("protocol", "issuance failed");
-                        return;
-                    }
-                    blindCredential = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForCredential = false;
-                } catch (IOException e) {
-                    waitingForCredential = true;
-
-                }
+            byte[] blindCredential = listen();
+            if (blindCredential.length == 1) {
+                Log.e("protocol", "issuance failed");
+                return;
             }
-            System.out.println("waitingCredential is"+waitingForCredential);
+
 
             byte[] realCredential = unblindSignatureJava(blindCredential, recipientCommitment, recipientAttributes, nbIssuerAttributes, nbRecipientAttributes);
+            System.out.println("sizeof real credential is "+realCredential.length);
             Log.e("protocol", "got credential");
             byte[] epoch = getEpochJava();
             Log.e("protocol", "got epoch");
             byte[] disclosureProofRecipient = getDisclosureProofJava(publicKey, nbIssuerAttributes, nbRecipientAttributes, realCredential, epoch);
-            System.out.println("Disclosure proof for recip is with length "+disclosureProofRecipient.length);
-            dumpStack();
-            for (int i = 0; i < disclosureProofRecipient.length; i++){
-                System.out.print(disclosureProofRecipient[i]);
-            }
-            System.out.println();
+            System.out.println("sizeof disclosure recipient key is "+disclosureProofRecipient.length);
+            Log.e("protocol", "got disclosure proof for recip");
             byte[] disclosureProofForIssuer = getProofOfDisclosureForVerifierJava(disclosureProofRecipient, nbRecipientAttributes, nbIssuerAttributes, epoch);
-            System.out.println("Disclosure proof for issuer is with length "+disclosureProofForIssuer.length);
-            for (int i = 0; i < disclosureProofForIssuer.length; i++){
-                System.out.print(disclosureProofForIssuer[i]);
-            }
-            System.out.flush();
-            try {
-                mmOutStream.write(disclosureProofForIssuer);
-                Log.e("protocol", "sent disclosure proof");
-            } catch (IOException e) {
-                System.out.println("error while sending credential");
-                Log.e("protocol", "error during disclosure");
-            }
-            byte[] blacklist = null;
-            boolean waitingForBlacklist = true;
-            while(waitingForBlacklist) {
-                try {
-                    int numBytes = mmInStream.read(mmBuffer);
-                    System.out.println("numBytes is "+numBytes);
-                    if (numBytes == 1){
-                        Log.e("protocol", "byte array is of size 1");
-                        //recipientText.setText("Distribution failed...");
-                        return;
-                    }
-                    blacklist = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForBlacklist = false;
-                }
-                catch (IOException e){
-                    waitingForBlacklist = true;
-                }
-            }
-            //Waiting for powers
-            try {
-                mmOutStream.write(new byte[1]);
-                Log.e("protocol", "sent waiting for powers");
-            } catch (IOException e) {
+            System.out.println("sizeof disclosure issuer key is "+disclosureProofForIssuer.length);
+            Log.e("protocol", "got disclosure proof for issuer");
+            write(disclosureProofForIssuer);
 
-            }
-            byte[] blacklistPowers = null;
-            boolean waitingForBlacklistPowers = true;
-            while(waitingForBlacklistPowers) {
-                try {
-                    int numBytes = mmInStream.read(mmBuffer);
 
-                    blacklistPowers = Arrays.copyOf(mmBuffer, numBytes);
-                    waitingForBlacklistPowers = false;
-                }
-                catch (IOException e){
-                    waitingForBlacklistPowers = true;
-
-                }
+            byte[] blacklist = listen();
+            if (blacklist.length == 1) {
+                Log.e("protocol", "distrib failed");
+                return;
             }
+            write(new byte[1]);
+
+            byte[] blacklistPowers = listen();
             Log.e("protocol", "got blacklist powers");
             byte[] tokenAndRevVal = getTokenAndRevocationValueJava(disclosureProofRecipient, realCredential, nbIssuerAttributes);
+            Log.e("protocol", "got token and rev val");
             byte[] blacProver = getProverProtocolJava(blacklist, blacklistPowers, tokenAndRevVal);
-            try {
-                mmOutStream.write(blacProver);
-            } catch (IOException e) {
+            Log.e("protocol", "Got blac prover protocol");
+            write(blacProver);
 
-            }
-            //Wait for station result
-            boolean waitingForResult = true;
-            while(waitingForResult) {
-                try {
-                    int numBytes = mmInStream.read(mmBuffer);
-                    System.out.println("numBytes is "+numBytes);
-
-                    if (numBytes == 2) {
-                        Log.e("protocol", "Success!!!!!");
-                        //recipientText.setText("Successful protocol!");
-                    }
-                    else {
-                        //recipientText.setText("Credential was found in blacklist");
-                    }
-                    waitingForResult = false;
-                }
-                catch (IOException e) {
-                    waitingForResult = true;
-
-                }
+            byte[] result = listen();
+            if (result.length == 2) {
+                Log.e("protocol", "Success!!!!!");
+            } else {
+                Log.e("protocol", "Failure at the very end!!!!!");
             }
         }
     }
-
 }

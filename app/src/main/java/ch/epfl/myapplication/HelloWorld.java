@@ -10,18 +10,23 @@ public class HelloWorld {
         initCurve();
         byte[] keys = keygenJava(nbIssuerAttributes+nbRecipientAttributes);
         byte[] publicKey = getPublicKeyJava(keys);
+        System.out.println("public key is "+publicKey.length);
         byte[] privateKey = getPrivateKeyJava(keys);
 
         byte[] recipientAttributes = getAttributesJava(nbRecipientAttributes);
+        System.out.println("recip attrib is "+recipientAttributes.length);
         byte[] recipientCommitment = getUserCommitmentJava(publicKey, recipientAttributes, nbRecipientAttributes, nbIssuerAttributes);
         byte[] recipientCommitmentForIssuer = removeBlindingFactorJava(recipientCommitment, nbRecipientAttributes);
+        System.out.println("recipi commit is "+recipientCommitmentForIssuer.length);
 
         String validPK = verifyUserCommitmentJava(recipientCommitmentForIssuer, publicKey, nbRecipientAttributes, nbIssuerAttributes);
         if (validPK.equals("True")) {
             byte[] issuerAttributes = getAttributesJava(nbIssuerAttributes);
             byte[] credential = issuerSigningJava(publicKey, privateKey, recipientCommitmentForIssuer, nbIssuerAttributes, issuerAttributes, nbRecipientAttributes);
+            System.out.println("signed credential is "+credential.length);
 
             byte[] realCredential = unblindSignatureJava(credential, recipientCommitment, recipientAttributes, nbIssuerAttributes, nbRecipientAttributes);
+            System.out.println("unblinded credential is "+realCredential.length);
             byte[] epoch = getEpochJava();
             byte[] disclosureProofRecipient = getDisclosureProofJava(publicKey, nbIssuerAttributes, nbRecipientAttributes, realCredential, epoch);
             System.out.println("Disclosure proof for issuer is with length "+disclosureProofRecipient.length);
