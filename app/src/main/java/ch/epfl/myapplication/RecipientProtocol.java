@@ -23,6 +23,7 @@ public class RecipientProtocol extends AppCompatActivity {
     UUID BT_UUID = UUID.fromString("c9916d86-1653-4f14-b7f1-075f0b39af39");
     TextView recipientText;
     ClientBT_Thread thread;
+    int MAX_MTU_SIZE = 990;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,13 +83,22 @@ public class RecipientProtocol extends AppCompatActivity {
         }
 
         private byte[] listen() {
+            byte[] result;
             try {
-                // Wait for commitment and PK
                 int numBytes = mmInStream.read(mmBuffer);
-                return Arrays.copyOf(mmBuffer, numBytes);
+                result =  Arrays.copyOf(mmBuffer, numBytes);
+                while (numBytes == MAX_MTU_SIZE) {
+                    numBytes = mmInStream.read(mmBuffer);
+                    byte[] tmp = Arrays.copyOf(mmBuffer, numBytes);
+                    byte[] dst = new byte[result.length + numBytes];
+                    System.arraycopy(result, 0, dst, 0, result.length);
+                    System.arraycopy(tmp, 0, dst, result.length, numBytes);
+                    result = dst;
+                }
             } catch (IOException e) {
                 return null;
             }
+            return result;
         }
 
         private void write(byte[] content) {
@@ -126,7 +136,7 @@ public class RecipientProtocol extends AppCompatActivity {
     Starts the protocol run from the recipient side
      */
         private void startProtocol() {
-            int nbRecipientAttributes = 2;
+            int nbRecipientAttributes = 5;
             int nbIssuerAttributes = 5;
             initCurve();
             byte[] publicKey = listen();

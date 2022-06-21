@@ -22,6 +22,8 @@ public class StationProtocol extends AppCompatActivity {
     UUID BT_UUID = UUID.fromString("c9916d86-1653-4f14-b7f1-075f0b39af39");
     TextView stationText;
     BT_Thread thread;
+    int MAX_MTU_SIZE = 990;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,18 +67,27 @@ public class StationProtocol extends AppCompatActivity {
                 e.printStackTrace();
                 return;
             }
-            HelloWorld.main();
+            //HelloWorld.main();
             startProtocol();
         }
 
         private byte[] listen() {
+            byte[] result;
             try {
-                // Wait for commitment and PK
                 int numBytes = mmInStream.read(mmBuffer);
-                return Arrays.copyOf(mmBuffer, numBytes);
+                result =  Arrays.copyOf(mmBuffer, numBytes);
+                while (numBytes == MAX_MTU_SIZE) {
+                    numBytes = mmInStream.read(mmBuffer);
+                    byte[] tmp = Arrays.copyOf(mmBuffer, numBytes);
+                    byte[] dst = new byte[result.length + numBytes];
+                    System.arraycopy(result, 0, dst, 0, result.length);
+                    System.arraycopy(tmp, 0, dst, result.length, numBytes);
+                    result = dst;
+                }
             } catch (IOException e) {
                 return null;
             }
+            return result;
         }
 
         private void write(byte[] content) {
@@ -121,11 +132,12 @@ public class StationProtocol extends AppCompatActivity {
      */
         private void startProtocol() {
             Log.e("startProtoIssuer", "started protocol");
-            int nbRecipientAttributes = 2;
+            int nbRecipientAttributes = 5;
             int nbIssuerAttributes = 5;
             initCurve();
             byte[] keys = keygenJava(nbIssuerAttributes+nbRecipientAttributes);
             byte[] publicKey = getPublicKeyJava(keys);
+            System.out.println("public key in station is "+publicKey.length);
             byte[] privateKey = getPrivateKeyJava(keys);
             write(publicKey);
 
@@ -142,6 +154,7 @@ public class StationProtocol extends AppCompatActivity {
 
             Log.e("startProtoIssuer", "waiting for disclosure");
             byte[] disclosureProof = listen();
+            System.out.println("Size of disclosure proof in verifier is "+disclosureProof.length);
             byte[] alreadySeenCredentials = getAlreadySeenCredentialsJava();
             Log.e("startProtoIssuer", "got pseudo list");
             String validDisclosure = verifyDisclosureProofJava(disclosureProof, publicKey, alreadySeenCredentials);
