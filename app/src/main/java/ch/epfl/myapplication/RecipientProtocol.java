@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -22,15 +24,19 @@ public class RecipientProtocol extends AppCompatActivity {
     BluetoothAdapter bluetoothAdapter;
     UUID BT_UUID = UUID.fromString("c9916d86-1653-4f14-b7f1-075f0b39af39");
     TextView recipientText;
+    Button recipButton;
     ClientBT_Thread thread;
     int MAX_MTU_SIZE = 990;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.AppTheme_NoActionBar);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recipient_protocol);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         recipientText = findViewById(R.id.textViewRecipient);
+        recipButton = findViewById(R.id.buttonRecipient);
+        recipButton.setVisibility(View.GONE);
 
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
@@ -43,6 +49,11 @@ public class RecipientProtocol extends AppCompatActivity {
                 thread = new ClientBT_Thread(device);
                 recipientText.setText("Connected to "+deviceName);
                 thread.setPriority(Thread.MAX_PRIORITY);
+                recipButton.setOnClickListener(l -> {
+                    recipButton.setEnabled(false);
+                    thread.secondPart();
+                    recipButton.setVisibility(View.GONE);
+                });
                 thread.start();
             }
         }
@@ -80,6 +91,28 @@ public class RecipientProtocol extends AppCompatActivity {
             }
 
             startProtocol();
+        }
+
+        public void secondPart() {
+            byte[] resultOfSecondDisclosureProof = listen();
+            if (resultOfSecondDisclosureProof.length == 1) {
+                //Failed, double spending detected
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        recipientText.setText("Credential has already been seen, come again next time..");
+                    }
+                });
+            }
+            else {
+                //Success, should not happen in this demo
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        recipientText.setText("Good to go!");
+                    }
+                });
+            }
         }
 
         private byte[] listen() {
@@ -197,6 +230,7 @@ public class RecipientProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         recipientText.setText("The protocol succeeded!");
+                        recipButton.setVisibility(View.VISIBLE);
                     }
                 });
             } else {

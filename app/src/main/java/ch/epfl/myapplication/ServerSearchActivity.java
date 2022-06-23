@@ -73,30 +73,11 @@ public class ServerSearchActivity extends AppCompatActivity implements ListInter
 
         // Changes the theme back from the splashscreen. It's very important that this is called
         // BEFORE onCreate.
-        SystemClock.sleep(getResources().getInteger(R.integer.splashscreen_duration));
+        //SystemClock.sleep(getResources().getInteger(R.integer.splashscreen_duration));
         setTheme(R.style.AppTheme_NoActionBar);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-
-        // Sets up the RecyclerView.
-        recyclerViewAdapter = new DeviceRecyclerViewAdapter(this);
-        recyclerView = findViewById(R.id.list);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        // Sets the view to show when the dataset is empty. IMPORTANT : this method must be called
-        // before recyclerView.setAdapter().
-        View emptyView = findViewById(R.id.empty_list);
-        recyclerView.setEmptyView(emptyView);
-
-        // Sets the view to show during progress.
-        ProgressBar progressBar = findViewById(R.id.progressBar);
-        recyclerView.setProgressView(progressBar);
-
-        recyclerView.setAdapter(recyclerViewAdapter);
 
         // [#11] Ensures that the Bluetooth is available on this device before proceeding.
         boolean hasBluetooth = getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH);

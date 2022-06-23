@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -21,18 +23,27 @@ public class StationProtocol extends AppCompatActivity {
     String BT_NAME = "BLUETOOTH_CONNECTION_FOR_THE_APP";
     UUID BT_UUID = UUID.fromString("c9916d86-1653-4f14-b7f1-075f0b39af39");
     TextView stationText;
+    Button distribAgainButton;
     BT_Thread thread;
     int MAX_MTU_SIZE = 990;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.AppTheme_NoActionBar);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_station_protocol);
         stationText = findViewById(R.id.textViewStation);
+        distribAgainButton = findViewById(R.id.buttonInStation);
+        distribAgainButton.setVisibility(View.GONE);
         thread = new BT_Thread();
         thread.setPriority(Thread.MAX_PRIORITY);
         thread.start();
+        distribAgainButton.setOnClickListener(l -> {
+            distribAgainButton.setEnabled(false);
+            thread.secondPart();
+            distribAgainButton.setVisibility(View.GONE);
+        });
     }
 
     @Override
@@ -47,6 +58,9 @@ public class StationProtocol extends AppCompatActivity {
         public BluetoothSocket recipientSocket;
         InputStream mmInStream;
         OutputStream mmOutStream;
+        byte[] initialDisclosure;
+        byte[] publicKey;
+        byte[] newListOfCredentials;
         byte[] mmBuffer = new byte[4096];
         public void run() {
             try {
@@ -98,6 +112,30 @@ public class StationProtocol extends AppCompatActivity {
             }
         }
 
+        public void secondPart(){
+            byte[] resultSecondDisclosure = verifyDisclosureProofJava(initialDisclosure, publicKey, newListOfCredentials);
+            String isValidSecondDisclosure = isDisclosureProofValidJava(resultSecondDisclosure);
+            if (isValidSecondDisclosure.equals("True")) {
+                write(new byte[2]);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        stationText.setText("This user is valid.");
+                    }
+                });
+            }
+            else {
+                write(new byte[1]);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        stationText.setText("This credential has already been seen in the domain..");
+                    }
+                });
+            }
+
+        }
+
         private void startProtocol2() {
             write(new byte[2500]);
             Log.e("tester", "sent first");
@@ -137,6 +175,7 @@ public class StationProtocol extends AppCompatActivity {
             initCurve();
             byte[] keys = keygenJava(nbIssuerAttributes+nbRecipientAttributes);
             byte[] publicKey = getPublicKeyJava(keys);
+            this.publicKey = publicKey;
             System.out.println("public key in station is "+publicKey.length);
             byte[] privateKey = getPrivateKeyJava(keys);
             write(publicKey);
@@ -154,13 +193,22 @@ public class StationProtocol extends AppCompatActivity {
 
             Log.e("startProtoIssuer", "waiting for disclosure");
             byte[] disclosureProof = listen();
+            initialDisclosure = disclosureProof;
             System.out.println("Size of disclosure proof in verifier is "+disclosureProof.length);
             byte[] alreadySeenCredentials = getAlreadySeenCredentialsJava();
             Log.e("startProtoIssuer", "got pseudo list");
-            String validDisclosure = verifyDisclosureProofJava(disclosureProof, publicKey, alreadySeenCredentials);
+            byte[] resultDisclosure = verifyDisclosureProofJava(disclosureProof, publicKey, alreadySeenCredentials);
+            String isValidDisclosure = isDisclosureProofValidJava(resultDisclosure);
             Log.e("startProtoIssuer", "verified disclosure");
             byte[] blacklist;
-            if (validDisclosure.equals("True")) {
+            if (isValidDisclosure.equals("True")) {
+                byte[] newAlreadySeenValues = getNewAlreadySeenCredentialsJava(resultDisclosure);
+                newListOfCredentials = newAlreadySeenValues;
+                byte[] verifyAgain = verifyDisclosureProofJava(disclosureProof, publicKey, newAlreadySeenValues);
+                String validVerifyAgain = isDisclosureProofValidJava(verifyAgain);
+                if (validVerifyAgain.equals("False")) {
+                    Log.e("tag", "Since the domain-specific pseudo was added to the list of previously seen, double-spending has been detected!");
+                }
                 blacklist = getServiceProviderRevocatedValuesJava(10);
                 write(blacklist);
             }
@@ -187,6 +235,7 @@ public class StationProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         stationText.setText("The recipient has succeeded in showing their credential");
+                        distribAgainButton.setVisibility(View.VISIBLE);
                     }
                 });
             }

@@ -34,7 +34,8 @@ public class HelloWorld {
             System.out.println("Disclosure proof for issuer is with length "+disclosureProofForIssuer.length);
 
             byte[] alreadySeenCredentials = getAlreadySeenCredentialsJava();
-            String validDisclosure = verifyDisclosureProofJava(disclosureProofForIssuer, publicKey, alreadySeenCredentials);
+            byte[] resultDisclosure = verifyDisclosureProofJava(disclosureProofForIssuer, publicKey, alreadySeenCredentials);
+            String validDisclosure = isDisclosureProofValidJava(resultDisclosure);
             if (validDisclosure.equals("True")) {
                 byte[] blacklist = getServiceProviderRevocatedValuesJava(10);
                 byte[] blacklistedPowers = getBlacklistedPowersJava(10);
@@ -92,8 +93,9 @@ public class HelloWorld {
 
     public static native byte[] getProofOfDisclosureForVerifierJava(byte[] proof_of_disclosure_for_recipient, int nb_recipient_attributes, int nb_issuer_attributes, byte[] epoch);
 
-    public static native String verifyDisclosureProofJava(byte[] verifier_disclosure_proof, byte[] issuer_pk, byte[] already_seen_credentials);
-
+    public static native byte[] verifyDisclosureProofJava(byte[] verifier_disclosure_proof, byte[] issuer_pk, byte[] already_seen_credentials);
+    public static native byte[] getNewAlreadySeenCredentialsJava(byte[] disclosureProofResult);
+    public static native String isDisclosureProofValidJava(byte[] disclosureProofResult);
     public static native byte[] getAlreadySeenCredentialsJava();
 
     public static native byte[] getServiceProviderRevocatedValuesJava(int nbr_tokens);
