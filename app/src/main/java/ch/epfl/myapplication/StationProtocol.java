@@ -29,7 +29,7 @@ public class StationProtocol extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_station_protocol);
-        stationText = findViewById(R.id.issuerText);
+        stationText = findViewById(R.id.textViewStation);
         thread = new BT_Thread();
         thread.setPriority(Thread.MAX_PRIORITY);
         thread.start();
@@ -183,10 +183,22 @@ public class StationProtocol extends AppCompatActivity {
             if (validBLACProof.equals("True")) {
                 write(new byte[2]);
                 Log.e("issuerOut", "letsgooo all works");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        stationText.setText("The recipient has succeeded in showing their credential");
+                    }
+                });
             }
             else {
                 write(new byte[1]);
                 Log.e("issuerOut", "blac failed");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        stationText.setText("The recipient has failed in showing their credential");
+                    }
+                });
             }
         }
 

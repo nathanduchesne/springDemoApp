@@ -193,8 +193,20 @@ public class RecipientProtocol extends AppCompatActivity {
             byte[] result = listen();
             if (result.length == 2) {
                 Log.e("protocol", "Success!!!!!");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        recipientText.setText("The protocol succeeded!");
+                    }
+                });
             } else {
                 Log.e("protocol", "Failure at the very end!!!!!");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        recipientText.setText("The protocol aborted :(");
+                    }
+                });
             }
         }
     }
