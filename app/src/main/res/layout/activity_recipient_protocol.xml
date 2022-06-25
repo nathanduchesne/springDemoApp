@@ -11,6 +11,7 @@
         android:layout_width="298dp"
         android:layout_height="122dp"
         android:text="Connecting to server device.."
+        android:gravity="center_horizontal"
         android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -28,7 +29,6 @@
         android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -55,8 +55,8 @@
 
     <ImageView
         android:id="@+id/redCross"
-        android:layout_width="141dp"
-        android:layout_height="138dp"
+        android:layout_width="144dp"
+        android:layout_height="133dp"
         app:layout_constraintBottom_toTopOf="@+id/buttonRecipient"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

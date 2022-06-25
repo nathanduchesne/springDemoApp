@@ -39,11 +39,11 @@ public class RecipientProtocol extends AppCompatActivity {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         recipientText = findViewById(R.id.textViewRecipient);
         recipButton = findViewById(R.id.buttonRecipient);
-        recipButton.setVisibility(View.GONE);
+        recipButton.setVisibility(View.INVISIBLE);
         tick = findViewById(R.id.greenTick);
-        tick.setVisibility(View.GONE);
+        tick.setVisibility(View.INVISIBLE);
         cross = findViewById(R.id.redCross);
-        cross.setVisibility(View.GONE);
+        cross.setVisibility(View.INVISIBLE);
 
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
@@ -58,9 +58,9 @@ public class RecipientProtocol extends AppCompatActivity {
                 thread.setPriority(Thread.MAX_PRIORITY);
                 recipButton.setOnClickListener(l -> {
                     recipButton.setEnabled(false);
-                    recipButton.setVisibility(View.GONE);
-                    tick.setVisibility(View.GONE);
-                    cross.setVisibility(View.GONE);
+                    recipButton.setVisibility(View.INVISIBLE);
+                    tick.setVisibility(View.INVISIBLE);
+                    cross.setVisibility(View.INVISIBLE);
                     thread.secondPart();
                 });
                 thread.start();
@@ -111,7 +111,7 @@ public class RecipientProtocol extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        recipientText.setText("Credential has already been seen, come again next time..");
+                        recipientText.setText("Credential has already been seen, come again next week.");
                         cross.setVisibility(View.VISIBLE);
                     }
                 });

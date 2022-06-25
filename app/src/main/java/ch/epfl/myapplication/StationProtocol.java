@@ -49,9 +49,9 @@ public class StationProtocol extends AppCompatActivity {
         distribAgainButton.setOnClickListener(l -> {
             distribAgainButton.setEnabled(false);
             distribAgainButton.setVisibility(View.INVISIBLE);
-            thread.secondPart();
             cross.setVisibility(View.INVISIBLE);
             tick.setVisibility(View.INVISIBLE);
+            thread.secondPart();
         });
     }
 
@@ -139,9 +139,8 @@ public class StationProtocol extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        stationText.setText("This credential has already been seen in the domain.");
                         cross.setVisibility(View.VISIBLE);
-                        System.out.println("Cross visib is "+cross.getVisibility());
-                        stationText.setText("This credential has already been seen in the domain..");
                     }
                 });
             }
