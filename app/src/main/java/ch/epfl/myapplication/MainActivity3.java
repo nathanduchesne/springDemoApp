@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -48,7 +49,7 @@ public class MainActivity3 extends AppCompatActivity {
     /**
      * The Bluetooth discovery button.
      */
-    private FloatingActionButton fab;
+    private Button fab;
 
 
     /**

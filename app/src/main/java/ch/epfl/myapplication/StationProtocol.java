@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -25,6 +26,8 @@ public class StationProtocol extends AppCompatActivity {
     TextView stationText;
     Button distribAgainButton;
     BT_Thread thread;
+    ImageView cross;
+    ImageView tick;
     int MAX_MTU_SIZE = 990;
 
 
@@ -35,14 +38,20 @@ public class StationProtocol extends AppCompatActivity {
         setContentView(R.layout.activity_station_protocol);
         stationText = findViewById(R.id.textViewStation);
         distribAgainButton = findViewById(R.id.buttonInStation);
-        distribAgainButton.setVisibility(View.GONE);
+        distribAgainButton.setVisibility(View.INVISIBLE);
+        tick = findViewById(R.id.tickStation);
+        tick.setVisibility(View.INVISIBLE);
+        cross = findViewById(R.id.crossStation);
+        cross.setVisibility(View.INVISIBLE);
         thread = new BT_Thread();
         thread.setPriority(Thread.MAX_PRIORITY);
         thread.start();
         distribAgainButton.setOnClickListener(l -> {
             distribAgainButton.setEnabled(false);
+            distribAgainButton.setVisibility(View.INVISIBLE);
             thread.secondPart();
-            distribAgainButton.setVisibility(View.GONE);
+            cross.setVisibility(View.INVISIBLE);
+            tick.setVisibility(View.INVISIBLE);
         });
     }
 
@@ -58,7 +67,6 @@ public class StationProtocol extends AppCompatActivity {
         public BluetoothSocket recipientSocket;
         InputStream mmInStream;
         OutputStream mmOutStream;
-        byte[] initialDisclosure;
         byte[] publicKey;
         byte[] newListOfCredentials;
         byte[] mmBuffer = new byte[4096];
@@ -113,7 +121,8 @@ public class StationProtocol extends AppCompatActivity {
         }
 
         public void secondPart(){
-            byte[] resultSecondDisclosure = verifyDisclosureProofJava(initialDisclosure, publicKey, newListOfCredentials);
+            byte[] newProofDisclosure = listen();
+            byte[] resultSecondDisclosure = verifyDisclosureProofJava(newProofDisclosure, publicKey, newListOfCredentials);
             String isValidSecondDisclosure = isDisclosureProofValidJava(resultSecondDisclosure);
             if (isValidSecondDisclosure.equals("True")) {
                 write(new byte[2]);
@@ -121,6 +130,7 @@ public class StationProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         stationText.setText("This user is valid.");
+                        tick.setVisibility(View.VISIBLE);
                     }
                 });
             }
@@ -129,6 +139,8 @@ public class StationProtocol extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        cross.setVisibility(View.VISIBLE);
+                        System.out.println("Cross visib is "+cross.getVisibility());
                         stationText.setText("This credential has already been seen in the domain..");
                     }
                 });
@@ -136,25 +148,6 @@ public class StationProtocol extends AppCompatActivity {
 
         }
 
-        private void startProtocol2() {
-            write(new byte[2500]);
-            Log.e("tester", "sent first");
-
-            byte[] res2 = listen();
-            Log.e("tester", "received first");
-            write(multiplyArray(res2));
-            Log.e("tester", "sent second");
-
-            byte[] res3 = listen();
-            Log.e("tester", "received second");
-            write(multiplyArray(res3));
-            Log.e("tester", "sent third");
-
-            byte[] finalRes = listen();
-            byte[] oups = multiplyArray(finalRes);
-            System.out.println(oups.length);
-            Log.e("tester", "finished");
-        }
 
 
         private byte[] multiplyArray(byte[] array) {
@@ -193,7 +186,6 @@ public class StationProtocol extends AppCompatActivity {
 
             Log.e("startProtoIssuer", "waiting for disclosure");
             byte[] disclosureProof = listen();
-            initialDisclosure = disclosureProof;
             System.out.println("Size of disclosure proof in verifier is "+disclosureProof.length);
             byte[] alreadySeenCredentials = getAlreadySeenCredentialsJava();
             Log.e("startProtoIssuer", "got pseudo list");
@@ -204,11 +196,6 @@ public class StationProtocol extends AppCompatActivity {
             if (isValidDisclosure.equals("True")) {
                 byte[] newAlreadySeenValues = getNewAlreadySeenCredentialsJava(resultDisclosure);
                 newListOfCredentials = newAlreadySeenValues;
-                byte[] verifyAgain = verifyDisclosureProofJava(disclosureProof, publicKey, newAlreadySeenValues);
-                String validVerifyAgain = isDisclosureProofValidJava(verifyAgain);
-                if (validVerifyAgain.equals("False")) {
-                    Log.e("tag", "Since the domain-specific pseudo was added to the list of previously seen, double-spending has been detected!");
-                }
                 blacklist = getServiceProviderRevocatedValuesJava(10);
                 write(blacklist);
             }
@@ -236,6 +223,7 @@ public class StationProtocol extends AppCompatActivity {
                     public void run() {
                         stationText.setText("The recipient has succeeded in showing their credential");
                         distribAgainButton.setVisibility(View.VISIBLE);
+                        tick.setVisibility(View.VISIBLE);
                     }
                 });
             }
@@ -246,6 +234,7 @@ public class StationProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         stationText.setText("The recipient has failed in showing their credential");
+                        cross.setVisibility(View.VISIBLE);
                     }
                 });
             }

@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -27,6 +28,8 @@ public class RecipientProtocol extends AppCompatActivity {
     Button recipButton;
     ClientBT_Thread thread;
     int MAX_MTU_SIZE = 990;
+    ImageView tick;
+    ImageView cross;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +40,10 @@ public class RecipientProtocol extends AppCompatActivity {
         recipientText = findViewById(R.id.textViewRecipient);
         recipButton = findViewById(R.id.buttonRecipient);
         recipButton.setVisibility(View.GONE);
+        tick = findViewById(R.id.greenTick);
+        tick.setVisibility(View.GONE);
+        cross = findViewById(R.id.redCross);
+        cross.setVisibility(View.GONE);
 
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
@@ -51,8 +58,10 @@ public class RecipientProtocol extends AppCompatActivity {
                 thread.setPriority(Thread.MAX_PRIORITY);
                 recipButton.setOnClickListener(l -> {
                     recipButton.setEnabled(false);
-                    thread.secondPart();
                     recipButton.setVisibility(View.GONE);
+                    tick.setVisibility(View.GONE);
+                    cross.setVisibility(View.GONE);
+                    thread.secondPart();
                 });
                 thread.start();
             }
@@ -72,6 +81,7 @@ public class RecipientProtocol extends AppCompatActivity {
         InputStream mmInStream;
         OutputStream mmOutStream;
         byte[] mmBuffer = new byte[4096];
+        byte[] proofOfDisclosure;
         public ClientBT_Thread(BluetoothDevice dev) {
             device = dev;
         }
@@ -94,6 +104,7 @@ public class RecipientProtocol extends AppCompatActivity {
         }
 
         public void secondPart() {
+            write(proofOfDisclosure);
             byte[] resultOfSecondDisclosureProof = listen();
             if (resultOfSecondDisclosureProof.length == 1) {
                 //Failed, double spending detected
@@ -101,6 +112,7 @@ public class RecipientProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         recipientText.setText("Credential has already been seen, come again next time..");
+                        cross.setVisibility(View.VISIBLE);
                     }
                 });
             }
@@ -110,6 +122,7 @@ public class RecipientProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         recipientText.setText("Good to go!");
+                        tick.setVisibility(View.VISIBLE);
                     }
                 });
             }
@@ -150,21 +163,6 @@ public class RecipientProtocol extends AppCompatActivity {
             return result;
         }
 
-        private void startProtocol2() {
-            byte[] res1 = listen();
-            write(multiplyArray(res1));
-            Log.e("tester", "sent first");
-
-            byte[] res2 = listen();
-            Log.e("tester", "received first");
-            write(multiplyArray(res2));
-            Log.e("tester", "sent second");
-
-            byte[] res3 = listen();
-            Log.e("tester", "received second");
-            write(multiplyArray(res3));
-            Log.e("tester", "sent third");
-        }
         /*
     Starts the protocol run from the recipient side
      */
@@ -203,6 +201,7 @@ public class RecipientProtocol extends AppCompatActivity {
             System.out.println("sizeof disclosure recipient key is "+disclosureProofRecipient.length);
             Log.e("protocol", "got disclosure proof for recip");
             byte[] disclosureProofForIssuer = getProofOfDisclosureForVerifierJava(disclosureProofRecipient, nbRecipientAttributes, nbIssuerAttributes, epoch);
+            this.proofOfDisclosure = disclosureProofForIssuer;
             System.out.println("sizeof disclosure issuer key is "+disclosureProofForIssuer.length);
             Log.e("protocol", "got disclosure proof for issuer");
             write(disclosureProofForIssuer);
@@ -231,6 +230,7 @@ public class RecipientProtocol extends AppCompatActivity {
                     public void run() {
                         recipientText.setText("The protocol succeeded!");
                         recipButton.setVisibility(View.VISIBLE);
+                        tick.setVisibility(View.VISIBLE);
                     }
                 });
             } else {
@@ -239,6 +239,7 @@ public class RecipientProtocol extends AppCompatActivity {
                     @Override
                     public void run() {
                         recipientText.setText("The protocol aborted :(");
+                        cross.setVisibility(View.VISIBLE);
                     }
                 });
             }

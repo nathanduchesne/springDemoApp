@@ -8,21 +8,58 @@
 
     <TextView
         android:id="@+id/textViewStation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="300dp"
+        android:layout_height="136dp"
         android:text="Connecting to the recipient..."
+        android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.594"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.263" />
 
     <Button
         android:id="@+id/buttonInStation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Do distribution again..."
+        android:layout_marginBottom="52dp"
+        android:text="Verify next user..."
+        android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textView4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:text="ICRC Station"
+        android:textSize="50sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewStation" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/tickStation"
+        android:layout_width="127dp"
+        android:layout_height="125dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonInStation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewStation"
+        app:srcCompat="@mipmap/tick_green" />
+
+    <ImageView
+        android:id="@+id/crossStation"
+        android:layout_width="121dp"
+        android:layout_height="132dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonInStation"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewStation"
+        app:srcCompat="@mipmap/red_cross" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

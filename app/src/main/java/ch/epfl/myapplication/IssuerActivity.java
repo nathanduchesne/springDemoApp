@@ -32,7 +32,6 @@ public class IssuerActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() != Activity.RESULT_CANCELED) {
-                        recipientText.setText("Currently advertising my BT for recipient");
                         issuerButton.setEnabled(true);
 
                     }

@@ -8,21 +8,60 @@
 
     <TextView
         android:id="@+id/textViewRecipient"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="298dp"
+        android:layout_height="122dp"
         android:text="Connecting to server device.."
+        android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.495"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.333" />
 
     <Button
         android:id="@+id/buttonRecipient"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Do distribution again.."
+        android:layout_marginBottom="52dp"
+        android:text="Retry showing credential.."
+        android:textSize="28sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:text="Recipient"
+        android:textSize="50sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewRecipient" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/greenTick"
+        android:layout_width="144dp"
+        android:layout_height="133dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonRecipient"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewRecipient"
+        app:srcCompat="@mipmap/tick_green" />
+
+    <ImageView
+        android:id="@+id/redCross"
+        android:layout_width="141dp"
+        android:layout_height="138dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonRecipient"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewRecipient"
+        app:srcCompat="@mipmap/red_cross" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>
